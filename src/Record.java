@@ -85,9 +85,9 @@ public class Record {
                     "US-ASCII");
             this.bn_state_of_reg = new String(Arrays.copyOfRange(body, this.offset_bn_state_of_reg , this.offset_bn_abn),
                     "US-ASCII");
-            this.bn_abn = ByteBuffer.allocate(Long.BYTES)
-                    .put(Arrays.copyOfRange(body, this.offset_bn_abn, this.offset_end))
-                    .flip().getLong();
+            byte[] byte_bn_abn = Arrays.copyOfRange(body, this.offset_bn_abn, this.offset_end);
+            ByteBuffer byte_buffer_bn_abn = ByteBuffer.wrap(byte_bn_abn);
+            this.bn_abn = byte_buffer_bn_abn.getLong();
         } catch (Exception e) {
             e.printStackTrace();
         }
