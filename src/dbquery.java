@@ -3,7 +3,7 @@ import java.io.*;
 public class dbquery {
 
     public static void main(String[] args) {
-        if (args.length != 2) {
+        if (args.length != 3) {
             System.out.println("Arguments Error!");
             usage();
             return;
@@ -13,7 +13,7 @@ public class dbquery {
         short pagesize = Short.parseShort(args[1]);
         HeapFile hf = new HeapFile(pagesize);
         long start = System.currentTimeMillis();
-        hf.query(text);
+        hf.query(text, args[2]);
         long end = System.currentTimeMillis();
         long costtime = end - start;
         System.out.println("Query HeapFile cost " + costtime + "ms.");

@@ -9,7 +9,63 @@ public class HeapFile {
     public int pageCount;
     public int recordCount;
     public List<Page> pages;
+    public HashMap<String, Tuple2> hashIndex;
 
+    public HeapFile(short pageSize, String file) {
+        this.pageSize = pageSize;
+        this.pages = new ArrayList<>();
+        this.file = file;
+        this.pageCount = 0;
+        this.recordCount = 0;
+        this.hashIndex = new HashMap<String, Tuple2>();
+        int pageIndex = 0;
+        int recordIndex = 0;
+
+        try {
+            InputStream is = new FileInputStream(file);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            // remove the fist line.
+            reader.readLine();
+            String str = null;
+            Page page = new Page(this.pageSize);
+            this.pageCount += 1;
+            while (true) {
+                str = reader.readLine();
+                if(str!=null) {
+                    Record record = new Record(str);
+                    this.recordCount += 1;
+                    if (!page.add_record(record)) {
+                        pages.add(page);
+                        page = new Page(this.pageSize);
+                        this.pageCount += 1;
+                        page.add_record(record);
+                        recordIndex = 0;
+                        pageIndex += 1;
+                        Tuple2<Integer, Integer> index = new Tuple2<Integer, Integer>(pageIndex, recordIndex);
+                        this.hashIndex.put(record.bn_name, index);
+                    }
+                    else {
+                        Tuple2<Integer, Integer> index = new Tuple2<Integer, Integer>(pageIndex, recordIndex);
+                        this.hashIndex.put(record.bn_name, index);
+                        recordIndex += 1;
+                    }
+
+                }
+                else
+                    break;
+            }
+            ObjectOutput indexOut = new ObjectOutputStream(new FileOutputStream("index." + pageSize));
+            indexOut.writeObject(this.hashIndex);
+            indexOut.close();
+
+            pages.add(page);
+            is.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+/*
     public HeapFile(short pageSize, String file) {
         this.pageSize = pageSize;
         this.pages = new ArrayList<>();
@@ -46,6 +102,7 @@ public class HeapFile {
             e.printStackTrace();
         }
     }
+*/
 
     public HeapFile(short pageSize) {
         try (InputStream is = new FileInputStream("heap." + pageSize)) {
@@ -92,23 +149,53 @@ public class HeapFile {
         }
     }
 
-    public void query(String text) {
-        for (Page page: this.pages) {
-            for (Record record: page.records) {
-                if (record.bn_name.equals(text)) {
-                    System.out.println(
-                            record.register_name + "\t"
-                                    + record.bn_name + "\t"
-                                    + record.bn_status + "\t"
-                                    + record.bn_reg_dt + "\t"
-                                    + record.bn_cancel_dt + "\t"
-                                    + record.bn_renew_dt + "\t"
-                                    + record.bn_state_num + "\t"
-                                    + record.bn_state_of_reg + "\t"
-                                    + record.bn_abn
-                    );
-                }
+    public void query(String text, String useIndex) {
+        if (useIndex == "True") {
+            try {
+                ObjectInput indexIn = new ObjectInputStream(new FileInputStream("index." + this.pageSize));
+                this.hashIndex = (HashMap<String, Tuple2>) indexIn.readObject();
+                Tuple2<Integer, Integer> index = this.hashIndex.get(text);
+                int pageIndex = index.getFirst();
+                int recordIndex = index.getSecond();
+                Record record = this.pages.get(pageIndex).records.get(recordIndex);
+                System.out.println(
+                        record.register_name + "\t"
+                                + record.bn_name + "\t"
+                                + record.bn_status + "\t"
+                                + record.bn_reg_dt + "\t"
+                                + record.bn_cancel_dt + "\t"
+                                + record.bn_renew_dt + "\t"
+                                + record.bn_state_num + "\t"
+                                + record.bn_state_of_reg + "\t"
+                                + record.bn_abn
+                );
+                return;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
+        else {
+            for (Page page: this.pages) {
+                for (Record record: page.records) {
+                    if (record.bn_name.equals(text)) {
+                        System.out.println(
+                                record.register_name + "\t"
+                                        + record.bn_name + "\t"
+                                        + record.bn_status + "\t"
+                                        + record.bn_reg_dt + "\t"
+                                        + record.bn_cancel_dt + "\t"
+                                        + record.bn_renew_dt + "\t"
+                                        + record.bn_state_num + "\t"
+                                        + record.bn_state_of_reg + "\t"
+                                        + record.bn_abn
+                        );
+                        return;
+                    }
+                }
+            }
+            System.out.println("Can't find " + text);
+        }
+
     }
 }
+
