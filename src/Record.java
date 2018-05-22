@@ -1,8 +1,11 @@
+import java.io.*;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.nio.ByteBuffer;
-import java.util.*;
-import java.text.*;
 
-public class Record {
+
+public class Record implements Serializable {
+
     public String register_name;
     public String bn_name;
     public String bn_status;
@@ -12,20 +15,21 @@ public class Record {
     public String bn_state_num;
     public String bn_state_of_reg;
     public long bn_abn;
-    public short offset_register_name;
-    public short offset_bn_name;
-    public short offset_bn_status;
-    public short offset_bn_reg_dt;
-    public short offset_bn_cancel_dt;
-    public short offset_bn_renew_dt;
-    public short offset_bn_state_num;
-    public short offset_bn_state_of_reg ;
-    public short offset_bn_abn;
-    public short offset_end;
+    private short offset_register_name;
+    private short offset_bn_name;
+    private short offset_bn_status;
+    private short offset_bn_reg_dt;
+    private short offset_bn_cancel_dt;
+    private short offset_bn_renew_dt;
+    private short offset_bn_state_num;
+    private short offset_bn_state_of_reg;
+    private short offset_bn_abn;
+    private short offset_end;
+
 
     public Record(String line) {
         try {
-            String[] str_array = new String[] {"","","","","","","","","0"};
+            String[] str_array = new String[]{"", "", "", "", "", "", "", "", "0"};
             String[] fields_array = line.split("\t");
             System.arraycopy(fields_array, 0, str_array, 0, fields_array.length);
             this.register_name = str_array[0];
@@ -39,14 +43,14 @@ public class Record {
             this.bn_abn = Long.parseLong(str_array[8]);
             this.offset_register_name = 0;
             this.offset_bn_name = (short) str_array[0].length();
-            this.offset_bn_status =  (short) (this.offset_bn_name + str_array[1].length());
+            this.offset_bn_status = (short) (this.offset_bn_name + str_array[1].length());
             this.offset_bn_reg_dt = (short) (this.offset_bn_status + str_array[2].length());
             this.offset_bn_cancel_dt = (short) (this.offset_bn_reg_dt + str_array[3].length());
             this.offset_bn_renew_dt = (short) (this.offset_bn_cancel_dt + str_array[4].length());
             this.offset_bn_state_num = (short) (this.offset_bn_renew_dt + str_array[5].length());
             this.offset_bn_state_of_reg = (short) (this.offset_bn_state_num + str_array[6].length());
             this.offset_bn_abn = (short) (this.offset_bn_state_of_reg + str_array[7].length());
-            this.offset_end = (short) (this.offset_bn_abn + (Long.SIZE/Byte.SIZE));
+            this.offset_end = (short) (this.offset_bn_abn + (Long.SIZE / Byte.SIZE));
 
         } catch (Exception e) {
             System.out.println(line);
@@ -54,48 +58,66 @@ public class Record {
         }
     }
 
-    public Record(byte[] bytes) {
-        this.offset_register_name = 0;
-        this.offset_register_name = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 0, 2)).getShort();
-        this.offset_bn_name = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 2, 4)).getShort();
-        this.offset_bn_status = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 4, 6)).getShort();
-        this.offset_bn_reg_dt = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 6, 8)).getShort();
-        this.offset_bn_cancel_dt = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 8, 10)).getShort();
-        this.offset_bn_renew_dt = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 10, 12)).getShort();
-        this.offset_bn_state_num = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 12, 14)).getShort();
-        this.offset_bn_state_of_reg  = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 14, 16)).getShort();
-        this.offset_bn_abn = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 16, 18)).getShort();
-        this.offset_end = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 18, 20)).getShort();
+    public Record(byte[] data) throws IOException {
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
-        byte[] body = Arrays.copyOfRange(bytes, 20, bytes.length);
+        this.offset_register_name = dis.readShort();
+        this.offset_bn_name = dis.readShort();
+        this.offset_bn_status = dis.readShort();
+        this.offset_bn_reg_dt = dis.readShort();
+        this.offset_bn_cancel_dt = dis.readShort();
+        this.offset_bn_renew_dt = dis.readShort();
+        this.offset_bn_state_num = dis.readShort();
+        this.offset_bn_state_of_reg = dis.readShort();
+        this.offset_bn_abn = dis.readShort();
+        this.offset_end = dis.readShort();
+
         try {
-            this.register_name = new String(Arrays.copyOfRange(body, this.offset_register_name, this.offset_bn_name),
-                    "US-ASCII");
-            this.bn_name = new String(Arrays.copyOfRange(body, this.offset_bn_name, this.offset_bn_status),
-                    "US-ASCII");
-            this.bn_status = new String(Arrays.copyOfRange(body, this.offset_bn_status, this.offset_bn_reg_dt),
-                    "US-ASCII");
-            this.bn_reg_dt = new String(Arrays.copyOfRange(body, this.offset_bn_reg_dt, this.offset_bn_cancel_dt),
-                    "US-ASCII");
-            this.bn_cancel_dt = new String(Arrays.copyOfRange(body, this.offset_bn_cancel_dt, this.offset_bn_renew_dt),
-                    "US-ASCII");
-            this.bn_renew_dt = new String(Arrays.copyOfRange(body, this.offset_bn_renew_dt, this.offset_bn_state_num),
-                    "US-ASCII");
-            this.bn_state_num = new String(Arrays.copyOfRange(body, this.offset_bn_state_num, this.offset_bn_state_of_reg ),
-                    "US-ASCII");
-            this.bn_state_of_reg = new String(Arrays.copyOfRange(body, this.offset_bn_state_of_reg , this.offset_bn_abn),
-                    "US-ASCII");
-            byte[] byte_bn_abn = Arrays.copyOfRange(body, this.offset_bn_abn, this.offset_end);
-            ByteBuffer byte_buffer_bn_abn = ByteBuffer.wrap(byte_bn_abn);
-            this.bn_abn = byte_buffer_bn_abn.getLong();
+            byte[] body = new byte[this.offset_bn_name - this.offset_register_name];
+            dis.read(body, 0, this.offset_bn_name - this.offset_register_name);
+            this.register_name = new String(body, "US-ASCII");
+
+            body = new byte[this.offset_bn_status - this.offset_bn_name];
+            dis.read(body, 0, this.offset_bn_status - this.offset_bn_name);
+            this.bn_name = new String(body, "US-ASCII");
+
+            body = new byte[this.offset_bn_reg_dt - this.offset_bn_status];
+            dis.read(body, 0, this.offset_bn_reg_dt - this.offset_bn_status);
+            this.bn_status = new String(body, "US-ASCII");
+
+            body = new byte[this.offset_bn_cancel_dt - this.offset_bn_reg_dt];
+            dis.read(body, 0, this.offset_bn_cancel_dt - this.offset_bn_reg_dt);
+            this.bn_reg_dt = new String(body, "US-ASCII");
+
+            body = new byte[this.offset_bn_renew_dt - this.offset_bn_cancel_dt];
+            dis.read(body, 0, this.offset_bn_renew_dt - this.offset_bn_cancel_dt);
+            this.bn_cancel_dt = new String(body, "US-ASCII");
+
+            body = new byte[this.offset_bn_state_num - this.offset_bn_renew_dt];
+            dis.read(body, 0, this.offset_bn_state_num - this.offset_bn_renew_dt);
+            this.bn_renew_dt = new String(body, "US-ASCII");
+
+            body = new byte[this.offset_bn_state_of_reg - this.offset_bn_state_num];
+            dis.read(body, 0, this.offset_bn_state_of_reg - this.offset_bn_state_num);
+            this.bn_state_num = new String(body, "US-ASCII");
+
+            body = new byte[this.offset_bn_abn - this.offset_bn_state_of_reg];
+            dis.read(body, 0, this.offset_bn_abn - this.offset_bn_state_of_reg);
+            this.bn_state_of_reg = new String(body, "US-ASCII");
+
+            body = new byte[this.offset_end - this.offset_bn_abn];
+            dis.read(body, 0, this.offset_end - this.offset_bn_abn);
+            this.bn_abn = ByteBuffer.wrap(body).getLong();
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
-    
-    public byte[] serializer() {
+    public short lenth() {
+        return (short) (20 + this.offset_end);
+    }
+
+    public byte[] serialize() {
         byte[] header = new byte[20];
         System.arraycopy(ByteBuffer.allocate(2).putShort(this.offset_register_name).array(),
                 0, header, 0, 2);
@@ -134,31 +156,4 @@ public class Record {
         System.arraycopy(body, 0, result, 20, this.offset_end);
         return result;
     }
-
-    private void get_properties() {
-        System.out.println("register_name: " + this.register_name);
-        System.out.println("bn_name: " + this.bn_name);
-        System.out.println("bn_status: " + this.bn_status);
-        System.out.println("bn_reg_dt: " + this.bn_reg_dt);
-        System.out.println("bn_cancel_dt: " + this.bn_cancel_dt);
-        System.out.println("bn_renew_dt: " + this.bn_renew_dt);
-        System.out.println("bn_state_num: " + this.bn_state_num);
-        System.out.println("bn_state_of_reg: " + this.bn_state_of_reg);
-        System.out.println("bn_abn: " + this.bn_abn);
-        System.out.println("offset_register_name: " + this.offset_register_name);
-        System.out.println("offset_bn_name: " + this.offset_bn_name);
-        System.out.println("offset_bn_status: " + this.offset_bn_status);
-        System.out.println("offset_bn_reg_dt: " + this.offset_bn_reg_dt);
-        System.out.println("offset_bn_cancel_dt: " + this.offset_bn_cancel_dt);
-        System.out.println("offset_bn_renew_dt: " + this.offset_bn_renew_dt);
-        System.out.println("offset_bn_state_num: " + this.offset_bn_state_num);
-        System.out.println("offset_bn_state_of_reg : " + this.offset_bn_state_of_reg );
-        System.out.println("offset_bn_abn: " + this.offset_bn_abn);
-        System.out.println("offset_end: " + this.offset_end);
-    }
-
-    public short lenth() {
-        return (short) (20 + this.offset_end);
-    }
-
 }
