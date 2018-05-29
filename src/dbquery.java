@@ -28,20 +28,21 @@ public class dbquery {
         if (useIndex.equals("True")) {
             long start = System.currentTimeMillis();
             ObjectInput indexIn = new ObjectInputStream(new FileInputStream("index." + pagesize));
-            HashMap<String, Integer> hashIndex = (HashMap<String, Integer>) indexIn.readObject();
+            HashIndex hashIndex = (HashIndex) indexIn.readObject();
             indexIn.close();
             long readIndex = System.currentTimeMillis();
+            ArrayList<Integer> pids = hashIndex.getIndex(text);
             System.out.println("Load Index cost " + (readIndex - start) + "ms.");
-            int pid = hashIndex.get(text);
-            DataPage dpage = (DataPage) hf.readPage(new PageID(pid, (short) 1));
-            for (Record record : dpage.records) {
-                if (record.bn_name.equals(text)) {
-                    printRecord(record);
-                    long query = System.currentTimeMillis();
-                    System.out.println("Query Page cost " + (query - readIndex) + "ms.");
-                    return;
+            for (int pid : pids) {
+                DataPage dpage = (DataPage) hf.readPage(new PageID(pid, (short) 1));
+                for (Record record : dpage.records) {
+                    if (record.bn_name.equals(text)) {
+                        printRecord(record);
+                    }
                 }
             }
+            long query = System.currentTimeMillis();
+            System.out.println("Query Page cost " + (query - readIndex) + "ms.");
         }
         else {
             PageID hpid = new PageID(0, (short) 0);

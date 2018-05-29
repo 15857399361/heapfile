@@ -19,7 +19,7 @@ public class dbload {
             return;
         }
 
-        HashMap<String, Integer> hashIndex = new HashMap<>(4194304);
+        HashIndex hashIndex = new HashIndex(24);
         // int recordIndex = 0;
         pagesize = Short.parseShort(args[1]);
         String datafile = args[2];
@@ -55,7 +55,7 @@ public class dbload {
                 }
 
                 dpage.appendRecord(record);
-                hashIndex.put(record.bn_name, dpage.getId().getPageID());
+                hashIndex.setIndex(record.bn_name, dpage.getId().getPageID());
                 // recordIndex += 1;
 
             }
